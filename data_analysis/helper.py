@@ -161,3 +161,29 @@ from pandas import concat
 
 def all_test(*any):
     return concat([normality_test(*any), equal_variance_test(*any), independence_test(*any)])
+
+
+# 여러변수의 상관분석 = 상관도행렬 반복문 함수
+from scipy.stats import t, pearsonr
+
+
+def pearson_r(df):
+    names = df.columns
+    n=len(names)
+    pv=0.05
+
+    data = []
+
+    for i in range(0,n):
+        j = i+1 if i<n-1 else 0
+
+        fields = names[i] + 'vs' + names[j]
+        s, p = pearsonr(df[names[i]], df[names[j]])
+        result = p < pv
+
+        data.append({'fields': fields, 'statistic': s, 'pvalue': p, 'result': result})
+
+    rdf = DataFrame(data)
+    rdf.set_index('fields', inplace=True)
+
+    return rdf
