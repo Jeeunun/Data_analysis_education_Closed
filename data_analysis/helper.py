@@ -42,6 +42,53 @@ def replaceMissingValue(df):
     re_df = DataFrame(df_imr, index=df.index, columns=df.columns)
     return re_df
 
+def setCategory(df, fields=[]):
+    """
+    데이터 프레임에서 지정된 필드를 범주형으로 변경한다.
+
+    Parameters
+    -------
+    - df: 데이터 프레임
+    - fields: 범주형으로 변경할 필드명 리스트. 기본값은 빈 리스트(전체 필드 대상)
+
+    Returns
+    -------
+    - cdf: 범주형으로 변경된 데이터 프레임
+    """
+    cdf = df.copy()
+    # 데이터 프레임의 변수명을 리스트로 변환
+    ilist = list(cdf.dtypes.index)
+    # 데이터 프레임의 변수형을 리스트로 변환
+    vlist = list(cdf.dtypes.values)
+
+    # 변수형에 대한 반복 처리
+    for i, v in enumerate(vlist):
+        # 변수형이 object이면?
+        if v == 'object':
+            # 변수명을 가져온다.
+            field_name = ilist[i]
+
+            # 대상 필드 목록이 설정되지 않거나(전체필드 대상), 현재 필드가 대상 필드목록에 포함되어 있지 않다면?
+            if not fields or field_name not in fields:
+                continue
+
+            # 가져온 변수명에 대해 값의 종류별로 빈도를 카운트 한 후 인덱스 이름순으로 정렬
+            vc = cdf[field_name].value_counts().sort_index()
+            # print(vc)
+
+            # 인덱스 이름순으로 정렬된 값의 종류별로 반복 처리
+            for ii, vv in enumerate(list(vc.index)):
+                # 일련번호값 생성
+                vnum = ii + 1
+                # print(vv, " -->", vnum)
+
+                # 일련번호값으로 치환
+                cdf.loc[cdf[field_name] == vv, field_name] = vnum
+
+            # 해당 변수의 데이터 타입을 범주형으로 변환
+            cdf[field_name] = cdf[field_name].astype('category')
+
+    return cdf
 
 # stopwords 지우는 함수 [워드클라우드]
 def clearStopwords(nouns, stopwords_file_path="wordcloud/stopwords-ko.txt"):
