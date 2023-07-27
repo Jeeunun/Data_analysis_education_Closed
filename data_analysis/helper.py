@@ -452,6 +452,19 @@ def my_ols(data, y, x):
 
 # 독립변수, 종속변수 표준화 적용 함수
 def scalling(df, yname):
+    """
+    데이터 프레임을 표준화 한다.
+
+    Parameters
+    -------
+    - df: 데이터 프레임
+    - yname: 종속변수 이름
+
+    Returns
+    -------
+    - x_train_std_df: 표준화된 독립변수 데이터 프레임
+    - y_train_std_df: 표준화된 종속변수 데이터 프레임
+    """   
     x_train = df.drop([yname], axis=1)
     x_train_std = StandardScaler().fit_transform(x_train)
     x_train_std_df = DataFrame(x_train_std, columns=x_train.columns)
