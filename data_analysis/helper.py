@@ -1,6 +1,14 @@
 import numpy as np
-from pandas import DataFrame
+from pandas import DataFrame, MultiIndex, concat, merge
+from math import sqrt
+from scipy.stats import t, pearsonr, spearmanr
 from sklearn.impute import SimpleImputer
+from scipy.stats import shapiro, normaltest, ks_2samp, bartlett, fligner, levene, chi2_contingency
+from statsmodels.formula.api import ols
+import re
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+from sklearn.preprocessing import StandardScaler
+from pca import pca
 
 # 결측치경계 구하기 함수
 def getIq(field):
@@ -440,3 +448,27 @@ def my_ols(data, y, x):
     ols_result.varstr = varstr
 
     return ols_result
+
+
+# 독립변수, 종속변수 표준화 적용 함수
+def scalling(df, yname):
+    x_train = df.drop([yname], axis=1)
+    x_train_std = StandardScaler().fit_transform(x_train)
+    x_train_std_df = DataFrame(x_train_std, columns=x_train.columns)
+
+    y_train = df.filter([yname])
+    y_train_std = StandardScaler().fit_transform(y_train)
+    y_train_std_df = DataFrame(y_train_std, columns=y_train.columns)
+
+    return (x_train_std_df, y_train_std_df)
+
+# PCA 주성분 검사 함수
+def get_best_features(x_train_std_df):
+    pca_model = pca()
+    fit = pca_model.fit_transform(x_train_std_df)
+    topfeat_df = fit['topfeat']
+
+    best = topfeat_df.query("type=='best'")
+    feature = list(set(list(best['feature'])))
+
+    return (feature, topfeat_df)
