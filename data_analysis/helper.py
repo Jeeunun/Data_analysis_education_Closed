@@ -648,49 +648,49 @@ def my_logit(data, y, x):
     df['예측값'] = fit.predict(df.drop([y], axis=1))
     df['예측결과'] = df['예측값'] > 0.5
 
-    # # 혼동행렬
-    # cm = confusion_matrix(df['합격여부'], df['예측결과'])
-    # tn, fp, fn, tp = cm.ravel()
-    # cmdf = DataFrame([[tn, tp],[fn, fp]], index=['True', 'False'], columns=['Negative','Positive'])
+    # 혼동행렬
+    cm = confusion_matrix(df[y], df['예측결과'])
+    tn, fp, fn, tp = cm.ravel()
+    cmdf = DataFrame([[tn, tp],[fn, fp]], index=['True', 'False'], columns=['Negative','Positive'])
     
-    # # RAS
-    # ras = roc_auc_score(df['합격여부'], df['예측결과'])
+    # RAS
+    ras = roc_auc_score(df[y], df['예측결과'])
 
-    # # 위양성율, 재현율 ,임계값(사용안함)
-    # fpr, tpr, thresholds = roc_curve(df['합격여부'], df['예측결과'])
+    # 위양성율, 재현율 ,임계값(사용안함)
+    fpr, tpr, thresholds = roc_curve(df[y], df['예측결과'])
 
-    # # 정확도
-    # acc = accuracy_score(df['합격여부'], df['예측결과'])
+    # 정확도
+    acc = accuracy_score(df[y], df['예측결과'])
 
-    # #정밀도
-    # pre = precision_score(df['합격여부'], df['예측결과'])
+    #정밀도
+    pre = precision_score(df[y], df['예측결과'])
 
-    # #재현율
-    # recall = recall_score(df['합격여부'], df['예측결과'])
+    #재현율
+    recall = recall_score(df[y], df['예측결과'])
 
-    # #F1 score
-    # f1 = f1_score(df['합격여부'], df['예측결과'])
+    #F1 score
+    f1 = f1_score(df[y], df['예측결과'])
 
-    # #위양성율
-    # fallout = fp / (fp+tn)
+    #위양성율
+    fallout = fp / (fp+tn)
 
-    # #특이성
-    # spe = 1-fallout
+    #특이성
+    spe = 1-fallout
 
-    # result_df = DataFrame({'설명력(Pseudo-Rsqe)' : [fit.prsquared], '정확도(Accuracy)':[acc], '정밀도(Precision)':[pre], '재현율(Recall, TPR)':[recall], 'f1_score':[f1], '위양성율':[fallout], '특이성':[spe] })
+    result_df = DataFrame({'설명력(Pseudo-Rsqe)' : [fit.prsquared], '정확도(Accuracy)':[acc], '정밀도(Precision)':[pre], '재현율(Recall, TPR)':[recall], 'f1_score':[f1], '위양성율':[fallout], '특이성':[spe] })
 
-    # # 오즈비
-    # coef = fit.params
-    # odds_rate = np.exp(coef)
-    # odds_rate_df = DataFrame(odds_rate, columns=['odds_rate'])
+    # 오즈비
+    coef = fit.params
+    odds_rate = np.exp(coef)
+    odds_rate_df = DataFrame(odds_rate, columns=['odds_rate'])
 
     logit_result = LogitResult()
     logit_result.model = model
     logit_result.fit = fit
     logit_result.summary = summary
-    # logit_result.prs = prs
-    # logit_result.cmdf = cmdf
-    # logit_result.result_df = result_df
-    # logit_result.odds_rate_df = odds_rate_df
+    logit_result.prs = prs
+    logit_result.cmdf = cmdf
+    logit_result.result_df = result_df
+    logit_result.odds_rate_df = odds_rate_df
 
     return logit_result
