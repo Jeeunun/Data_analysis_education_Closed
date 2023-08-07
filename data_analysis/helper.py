@@ -703,7 +703,7 @@ def my_logit(data, y, x):
     return logit_result
 
 # 시계열데이터분석 탐색 모듈
-def expTimeData(data, yname, sd_model="m", max_diff=1): #최대차분 = 1
+def expTimeData(data, yname, sd_model="m", max_diff=1): #최대차분 = 1(defualt)
     df = data.copy()
 
     # 데이터 정상성 여부
