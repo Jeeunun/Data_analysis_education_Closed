@@ -1,5 +1,5 @@
 import numpy as np
-from pandas import DataFrame, MultiIndex, concat, DatetimeIndex
+from pandas import DataFrame, MultiIndex, concat, DatetimeIndex, Series
 from math import sqrt
 from scipy.stats import t, pearsonr, spearmanr
 from sklearn.impute import SimpleImputer
@@ -21,8 +21,12 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 from tabulate import tabulate
 
 
-def prettyPrint(df, headers="keys", tablefmt="psql", numalign="right"):
-    print(tabulate(df, headers=headers, tablefmt=tablefmt, numalign=numalign))
+def prettyPrint(df, headers="keys", tablefmt="psql", numalign="right", title="value"):
+     
+     if isinstance(df, Series):
+        df = DataFrame(df, columns=[title])
+
+        print(tabulate(df, headers=headers, tablefmt=tablefmt, numalign=numalign))
 
 def getIq(field, isPrint=True):
     """
@@ -96,7 +100,7 @@ def replaceMissingValue(df, strategy='mean'):
     re_df = DataFrame(df_imr, index=df.index, columns=df.columns)
     return re_df
 
-def setCategory(df, fields=[]):
+def setCategory(df, fields=[], labelling=True):
     """
     데이터 프레임에서 지정된 필드를 범주형으로 변경한다.
 
@@ -127,16 +131,25 @@ def setCategory(df, fields=[]):
                 continue
 
             # 가져온 변수명에 대해 값의 종류별로 빈도를 카운트 한 후 인덱스 이름순으로 정렬
-            vc = cdf[field_name].value_counts().sort_index()
+            #vc = cdf[field_name].value_counts().sort_index()
             # print(vc)
 
             # 인덱스 이름순으로 정렬된 값의 종류별로 반복 처리
-            for ii, vv in enumerate(list(vc.index)):
+            #for ii, vv in enumerate(list(vc.index)):
                 # 일련번호값으로 치환
-                cdf.loc[cdf[field_name] == vv, field_name] = ii
+                #cdf.loc[cdf[field_name] == vv, field_name] = ii
 
             # 해당 변수의 데이터 타입을 범주형으로 변환
             cdf[field_name] = cdf[field_name].astype('category')
+
+            if labelling:
+                mydict = {}
+                
+                for i, v in enumerate(cdf[field_name].dtypes.categories):
+                    mydict[v] = i
+
+                print(mydict)    
+                cdf[field_name] = cdf[field_name].map(mydict).astype(int)
 
     return cdf
 
