@@ -528,7 +528,7 @@ class OlsResult:
     def varstr(self, value):
         self._varstr = value
 
-def myOls(data, y, x):
+def my_ols(data, y=None, x=None, expr=None):
     """
     회귀분석을 수행한다.
 
@@ -538,13 +538,27 @@ def myOls(data, y, x):
     - y: 종속변수 이름
     - x: 독립변수의 이름들(리스트)
     """
-
-    # 독립변수의 이름이 리스트가 아니라면 리스트로 변환
-    if type(x) != list:
-        x = [x]
+    # 데이터프레임 복사
+    df = data.copy()
 
     # 종속변수~독립변수1+독립변수2+독립변수3+... 형태의 식을 생성
-    expr = "%s~%s" % (y, "+".join(x))
+    if not expr:      
+        # 독립변수의 이름이 리스트가 아니라면 리스트로 변환
+        if type(x) != list:
+            x = [x]
+        expr = "%s~%s" % (y, "+".join(x))
+    else:
+        x = []
+        p = expr.find('~')
+        y = expr[:p].strip()
+        x_tmp = expr[p+1:]
+        x_list = x_tmp.split('+')
+
+        for i in x_list:
+            k = i.strip()
+
+            if k:
+                x.append(k)
 
     # 회귀모델 생성
     model = ols(expr, data=data)
