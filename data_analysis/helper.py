@@ -998,3 +998,25 @@ def convertPoly(data, degree=2, include_bias=False):
     fit = poly.fit_transform(data)
     x = DataFrame(fit, columns=poly.get_feature_names_out())
     return x
+
+
+# 지도학습-회귀분석 시 추세선의 x,y축을 만드는 법 (lineplot)
+def getTrend(x, y, degree=2, value_count=100):
+    #[ a, b, c ] ==> ax^2 + bx + c
+    coeff = np.polyfit(x, y, degree)
+
+    if type(x) == 'list':
+        minx = min(x)
+        maxx = max(x)
+    else: #파라미터 x,y가 데이터프레임(series) 인 경우
+        minx = x.min()
+        maxx = x.max()
+
+    Vtrend = np.linspace(minx, maxx, value_count)  
+
+    Ttrend = coeff[-1]
+
+    for i in range(0, degree):
+        Ttrend += coeff[i] * Vtrend ** (degree - i)
+
+    return (Vtrend, Ttrend)
