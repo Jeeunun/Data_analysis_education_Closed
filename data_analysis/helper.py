@@ -1020,3 +1020,58 @@ def getTrend(x, y, degree=2, value_count=100):
         Ttrend += coeff[i] * Vtrend ** (degree - i)
 
     return (Vtrend, Ttrend)
+
+def regplot(x_left, y_left, y_left_pred=None, left_title=None, x_right=None, y_right=None, y_right_pred=None, right_title=None, figsize=(10, 5), save_path=None):
+    subcount = 1 if x_right is None else 2
+    
+    fig, ax = plt.subplots(1, subcount, figsize=figsize)
+    
+    axmain = ax if subcount == 1 else ax[0]
+    
+    # 왼쪽 산점도
+    sb.scatterplot(x=x_left, y=y_left, label='data', ax=axmain)
+    
+    # 왼쪽 추세선
+    x, y = getTrend(x_left, y_left)
+    sb.lineplot(x=x, y=y, color='blue', linestyle="--", ax=axmain)
+    
+    # 왼쪽 추정치
+    if y_left_pred is not None:
+        sb.scatterplot(x=x_left, y=y_left_pred, label='predict', ax=axmain)
+        # 추정치에 대한 추세선
+        x, y = getTrend(x_left, y_left_pred)
+        sb.lineplot(x=x, y=y, color='red', linestyle="--", ax=axmain)
+    
+    if left_title is not None:
+        axmain.set_title(left_title)
+        
+    axmain.legend()
+    axmain.grid()
+    
+    
+    if x_right is not None:
+        # 오른쪽 산점도
+        sb.scatterplot(x=x_right, y=y_right, label='data', ax=ax[1])
+        
+        # 오른쪽 추세선
+        x, y = getTrend(x_right, y_right)
+        sb.lineplot(x=x, y=y, color='blue', linestyle="--", ax=ax[1])
+    
+        # 오른쪽 추정치
+        if y_right_pred is not None:
+            sb.scatterplot(x=x_right, y=y_right_pred, label='predict', ax=ax[1])
+            # 추정치에 대한 추세선
+            x, y = getTrend(x_right, y_right_pred)
+            sb.lineplot(x=x, y=y, color='red', linestyle="--", ax=ax[1])
+        
+        if right_title is not None:
+            ax[1].set_title(right_title)
+            
+        ax[1].legend()
+        ax[1].grid()
+    
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300)
+        
+    plt.show()
+    plt.close()
