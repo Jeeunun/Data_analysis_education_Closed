@@ -6,7 +6,7 @@ from sklearn.impute import SimpleImputer
 from scipy.stats import shapiro, normaltest, ks_2samp, bartlett, fligner, levene, chi2_contingency
 from statsmodels.formula.api import ols
 from statsmodels.stats.outliers_influence import variance_inflation_factor
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import StandardScaler, PolynomialFeatures  
 from pca import pca
 from statsmodels.formula.api import logit
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, accuracy_score, recall_score, precision_score, f1_score
@@ -990,3 +990,11 @@ def set_datetime_index(df, field=None, inplace=False):
         cdf.index = DatetimeIndex(cdf.index.values, freq=cdf.index.inferred_freq)
         cdf.sort_index(inplace=True)
         return cdf
+    
+
+# 지도학습-회귀분석 시 다항식으로 변환하는 함수
+def convertPoly(data, degree=2, include_bias=False):
+    poly = PolynomialFeatures(degree=degree, include_bias=include_bias)
+    fit = poly.fit_transform(data)
+    x = DataFrame(fit, columns=poly.get_feature_names_out())
+    return x
