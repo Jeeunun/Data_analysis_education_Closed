@@ -1000,7 +1000,7 @@ def convertPoly(data, degree=2, include_bias=False):
     return x
 
 
-# 지도학습-회귀분석 시 추세선의 x,y축을 만드는 법 (lineplot)
+# 지도학습-회귀분석 시 추정치의 추세선의 x,y축을 만드는 법 (lineplot)
 def getTrend(x, y, degree=2, value_count=100):
     #[ a, b, c ] ==> ax^2 + bx + c
     coeff = np.polyfit(x, y, degree)
