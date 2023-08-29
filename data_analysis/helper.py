@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 
 from pandas import DataFrame, MultiIndex, concat, DatetimeIndex, Series
 
+from scipy import stats
 from scipy.stats import t, pearsonr, spearmanr
 from scipy.stats import shapiro, normaltest, ks_2samp, bartlett, fligner, levene, chi2_contingency
 
@@ -23,12 +24,13 @@ from sklearn.preprocessing import StandardScaler,PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, accuracy_score, recall_score, precision_score, f1_score, r2_score, mean_absolute_error, mean_squared_error
 
-def prettyPrint(df, headers="keys", tablefmt="psql", numalign="right", title="value"):
-     
-     if isinstance(df, Series):
-        df = DataFrame(df, columns=[title])
 
-        print(tabulate(df, headers=headers, tablefmt=tablefmt, numalign=numalign))
+def prettyPrint(df, headers="keys", tablefmt="psql", numalign="right", title="value"):
+    
+    if isinstance(df, Series):
+        df = DataFrame(df, columns=[title])
+        
+    print(tabulate(df, headers=headers, tablefmt=tablefmt, numalign=numalign))
 
 def getIq(field, isPrint=True):
     """
@@ -143,14 +145,14 @@ def setCategory(df, fields=[], labelling=True):
 
             # 해당 변수의 데이터 타입을 범주형으로 변환
             cdf[field_name] = cdf[field_name].astype('category')
-
+            
             if labelling:
                 mydict = {}
                 
                 for i, v in enumerate(cdf[field_name].dtypes.categories):
                     mydict[v] = i
-
-                print(mydict)    
+                
+                print(mydict)
                 cdf[field_name] = cdf[field_name].map(mydict).astype(int)
 
     return cdf
@@ -443,7 +445,6 @@ def spearman_r(df, isPrint=True):
     else:
         return rdf
 
-# 회귀모델 성능측정지표 함수
 class RegMetric:
     def __init__(self, y, y_pred):
         # 설명력
@@ -515,9 +516,14 @@ class RegMetric:
     def mpe(self, value):
         self._mpe = value
 
-
 class OlsResult:
     def __init__(self):
+        self._x_train = None
+        self._y_train = None
+        self._train_pred = None
+        self._x_test = None
+        self._y_test = None
+        self._test_pred = None
         self._model = None
         self._fit = None
         self._summary = None
@@ -525,6 +531,58 @@ class OlsResult:
         self._result = None
         self._goodness = None
         self._varstr = None
+        self._coef = None
+        self._intercept = None
+        self._trainRegMetric = None
+        self._testRegMetric = None
+
+    @property
+    def x_train(self):
+        return self._x_train
+
+    @x_train.setter
+    def x_train(self, value):
+        self._x_train = value
+
+    @property
+    def y_train(self):
+        return self._y_train
+
+    @y_train.setter
+    def y_train(self, value):
+        self._y_train = value
+
+    @property
+    def train_pred(self):
+        return self._train_pred
+
+    @train_pred.setter
+    def train_pred(self, value):
+        self._train_pred = value
+
+    @property
+    def x_test(self):
+        return self._x_test
+
+    @x_test.setter
+    def x_test(self, value):
+        self._x_test = value
+
+    @property
+    def y_test(self):
+        return self._y_test
+
+    @y_test.setter
+    def y_test(self, value):
+        self._y_test = value
+
+    @property
+    def test_pred(self):
+        return self._test_pred
+
+    @test_pred.setter
+    def test_pred(self, value):
+        self._test_pred = value
 
     @property
     def model(self):
@@ -641,8 +699,7 @@ class OlsResult:
         if y_test is not None and y_test_pred is not None:
             self.testRegMetric = RegMetric(y_test, y_test_pred)
 
-
-def my_ols(data, y=None, x=None, expr=None):
+def myOls(data, y=None, x=None, expr=None):
     """
     회귀분석을 수행한다.
 
@@ -652,11 +709,12 @@ def my_ols(data, y=None, x=None, expr=None):
     - y: 종속변수 이름
     - x: 독립변수의 이름들(리스트)
     """
+
     # 데이터프레임 복사
     df = data.copy()
 
     # 종속변수~독립변수1+독립변수2+독립변수3+... 형태의 식을 생성
-    if not expr:      
+    if not expr:
         # 독립변수의 이름이 리스트가 아니라면 리스트로 변환
         if type(x) != list:
             x = [x]
@@ -667,10 +725,10 @@ def my_ols(data, y=None, x=None, expr=None):
         y = expr[:p].strip()
         x_tmp = expr[p+1:]
         x_list = x_tmp.split('+')
-
+            
         for i in x_list:
             k = i.strip()
-
+                
             if k:
                 x.append(k)
 
@@ -1104,35 +1162,30 @@ def set_datetime_index(df, field=None, inplace=False):
         cdf.index = DatetimeIndex(cdf.index.values, freq=cdf.index.inferred_freq)
         cdf.sort_index(inplace=True)
         return cdf
-    
 
-# 지도학습-회귀분석 시 다항식으로 변환하는 함수
 def convertPoly(data, degree=2, include_bias=False):
     poly = PolynomialFeatures(degree=degree, include_bias=include_bias)
     fit = poly.fit_transform(data)
     x = DataFrame(fit, columns=poly.get_feature_names_out())
     return x
 
-
-# 지도학습-회귀분석 시 추정치의 추세선의 x,y축을 만드는 법 (lineplot)
 def getTrend(x, y, degree=2, value_count=100):
     #[ a, b, c ] ==> ax^2 + bx + c
     coeff = np.polyfit(x, y, degree)
-
+    
     if type(x) == 'list':
         minx = min(x)
         maxx = max(x)
-    else: #파라미터 x,y가 데이터프레임(series) 인 경우
+    else:
         minx = x.min()
         maxx = x.max()
-
-    Vtrend = np.linspace(minx, maxx, value_count)  
-
+        
+    Vtrend = np.linspace(minx, maxx, value_count)
+    
     Ttrend = coeff[-1]
-
     for i in range(0, degree):
         Ttrend += coeff[i] * Vtrend ** (degree - i)
-
+        
     return (Vtrend, Ttrend)
 
 def regplot(x_left, y_left, y_left_pred=None, left_title=None, x_right=None, y_right=None, y_right_pred=None, right_title=None, figsize=(10, 5), save_path=None):
@@ -1189,11 +1242,10 @@ def regplot(x_left, y_left, y_left_pred=None, left_title=None, x_right=None, y_r
         
     plt.show()
     plt.close()
-
-# 머신러닝 회귀분석 모듈 테스트
-def ml_ols(data, xnames, yname, degree=1, test_size=0.25, scalling=False, random_state=777):
-# 표준화 설정이 되어 있다면 표준화 수행
-    if scalling:
+    
+def ml_ols(data, xnames, yname, degree=1, test_size=0.25, use_scalling=False, random_state=777):
+    # 표준화 설정이 되어 있다면 표준화 수행
+    if use_scalling:
         data = scalling(data)
         
     # 독립변수 이름이 문자열로 전달되었다면 콤마 단위로 잘라서 리스트로 변환
@@ -1204,7 +1256,7 @@ def ml_ols(data, xnames, yname, degree=1, test_size=0.25, scalling=False, random
     x = data.filter(xnames)
     
     # 종속변수 추출
-    y = data.filter([yname])
+    y = data[yname]
     
     # 2차식 이상으로 설정되었다면 차수에 맞게 변환
     if degree > 1:
@@ -1229,10 +1281,80 @@ def ml_ols(data, xnames, yname, degree=1, test_size=0.25, scalling=False, random
     result.coef = fit.coef_
     result.intercept = fit.intercept_
     
+    result.x_train = x_train.copy()
+    result.y_train = y_train.copy()
+    result.train_pred = result.fit.predict(result.x_train)
+    
     if x_test is not None and y_test is not None:
-        result.setRegMetric(y_train, fit.predict(x_train), y_test, fit.predict(x_test))
+        result.x_test = x_test.copy()
+        result.y_test = y_test.copy()
+        result.test_pred = result.fit.predict(result.x_test)
+        result.setRegMetric(y_train, result.train_pred, y_test, result.test_pred)
     else:
-        result.setRegMetric(y_train, fit.predict(x_train))
+        result.setRegMetric(y_train, result.train_pred)
+        
+    # 절편과 계수를 하나의 배열로 결합
+    params = np.append(result.intercept, result.coef)    
+    
+    # 상수항 추가하기
+    designX = x.copy()
+    designX.insert(0, '상수', 1)   
+    
+    # 행렬곱 구하기
+    dot = np.dot(designX.T,designX)
+    
+    # 행렬곱에 대한 역행렬 
+    inv = np.linalg.inv(dot)  
+    
+    # 역행렬의 대각선 반환  
+    dia = inv.diagonal()
+    
+    # 평균 제곱오차 구하기
+    predictions = result.fit.predict(x)
+    MSE = (sum((y-predictions)**2)) / (len(designX)-len(designX.iloc[0]))
+    
+    # 표준오차
+    se_b = np.sqrt(MSE * dia)
+    
+    # t값
+    ts_b = params / se_b
+    
+    # p값
+    p_values = [2*(1-stats.t.cdf(np.abs(i),(len(designX)-len(designX.iloc[0])))) for i in ts_b]
+    
+    # vif
+    vif = []
+    
+    # 훈련데이터에 대한 독립변수와 종속변수를 결합한 완전한 데이터프레임 준비
+    data = x_train.copy()
+    data[yname] = y_train
+    # print(data)
+    #print("-" * 30)
+
+    for i, v in enumerate(x_train.columns):
+        j = list(data.columns).index(v)
+        vif.append(variance_inflation_factor(data, j))
+        
+    # print([yname] * len(x_train.columns))
+    # print(x_train.columns)
+    # print(result.coef)
+    # print(se_b[1:])
+    # print(ts_b[1:])
+    # print(p_values[1:])
+    # print(vif)
+    
+    # 결과표 구성하기
+    result.table = DataFrame({
+        "종속변수": [yname] * len(x_train.columns),
+        "독립변수": x_train.columns,
+        "B": result.coef,
+        "표준오차": se_b[1:],
+        "β": 0,
+        "t": ts_b[1:],
+        "유의확률": p_values[1:],
+        "VIF": vif,
+    })
         
     return result
+    
         
