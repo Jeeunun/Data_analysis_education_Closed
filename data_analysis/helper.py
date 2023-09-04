@@ -24,6 +24,9 @@ from sklearn.preprocessing import StandardScaler,PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import confusion_matrix, roc_curve, roc_auc_score, accuracy_score, recall_score, precision_score, f1_score, r2_score, mean_absolute_error, mean_squared_error
 
+plt.rcParams['font.family'] = 'Malgun Gothic'
+plt.rcParams['font.size'] = 16
+plt.rcParams['axes.unicode_minus'] = False
 
 def prettyPrint(df, headers="keys", tablefmt="psql", numalign="right", title="value"):
     
@@ -1356,5 +1359,98 @@ def ml_ols(data, xnames, yname, degree=1, test_size=0.25, use_scalling=False, ra
     })
         
     return result
+
+def get_ols_table(data, xnames, yname, intercept, coef, predict):
+    # 독립변수 이름이 문자열로 전달되었다면 콤마 단위로 잘라서 리스트로 변환
+    if type(xnames) == str:
+        xnames = xnames.split(',')
+
+    # 독립변수 추출
+    x = data.filter(xnames)
+
+    # 종속변수 추출
+    y = data[yname]
+
+    # 절편과 계수를 하나의 배열로 결합
+    params = np.append(intercept, coef)
+
+    # 상수항 추가하기
+    designX = x.copy()
+    designX.insert(0, '상수', 1)
+
+    # 행렬곱 구하기
+    dot = np.dot(designX.T, designX)
+
+    # 역행렬의 대각선 반환
+    dia = inv.diagonal()
+
+    # 형균 제곱 오차 구하기
+    MSE = (sum((y-predict)**2)) / (len(designX) - len(designX.iloc[0]))
+
+    # 표준오차
+    se_b = np.sqrt(MSE * dia)
+
+    # t값
+    ts_b = params / se_b
+
+    # p값
+    p_values = [2*(1-stats.t.cdf(np.abs(i), (len(designX)-len(designX.iloc[0])))) for i in ts_b]
+
+    # vif
+    vif = []
+
+    # 훈련데이터에 대한 독립변수와 종속변수를 결합한 완전한 데이터
+    data = x.copy()
+    data[yname] = y
+
+
+    for i, v in enumerate(x.columns):
+        j = list(data.columns).index(v)
+        vif.append(variance_inflation_factor(data, j))
+
+    # 결과표 구성하기
+    table = DataFrame({
+        "종속변수": [yname] * len(x.columns),
+        "독립변수": x.columns,
+        "B": coef,
+        "표준오차": se_b[1:],
+        "β": 0,
+        "t": ts_b[1:],
+        "유의확률": p_values[1:],
+        "VIF": vif,
+    })
+
+    return table
+
+
+def tf_result_plot(result, figsize=(15, 5), dpi=150):
+    # 학습 결과에 대한 데이터프레임 생성
+    result_df = DataFrame(result.history)
+    result_df['epochs'] = result_df.index+1
+    result_df.set_index('epochs', inplace=True)
     
-        
+    # 학습 결과 그래프의 컬럼명
+    column_names = result_df.columns
+    
+    # 학습데이터에 대한 필드이름
+    train_column_name = [column_names[0], column_names[1]]
+    
+    # 검증데이터에 대한 필드이름
+    test_column_name = [column_names[2], column_names[3]]
+    
+    # 학습 결과 그래프
+    fig, ax = plt.subplots(1, 2, figsize=figsize, dpi=dpi)
+    
+    for i, v in enumerate(ax):
+        sb.lineplot(x=result_df.index, y=train_column_name[i], data=result_df, color='blue', label=train_column_name[i], ax=v)
+        sb.lineplot(x=result_df.index, y=test_column_name[i], data=result_df, color='orange', label=test_column_name[i], ax=v)
+        v.set_title(train_column_name[i])
+        v.set_xlabel('ephocs')
+        v.set_ylabel(train_column_name[i])
+        v.grid()
+        v.legend()
+    
+    plt.show()
+    plt.close()
+    
+    return result_df
